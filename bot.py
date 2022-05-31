@@ -85,7 +85,7 @@ async def on_message(message):
 @client.event
 async def on_error(event, *args, **kwargs):
     with open('err.log', 'a') as f:
-        if event == 'on_messgae':
+        if event == 'on_message':
             f.write(f'Unhandled message: {args[0]} \n')
         else:
             raise
@@ -94,7 +94,7 @@ async def on_error(event, *args, **kwargs):
 # for both join and leave
 # Doesn't move to other voice channels if the person who summoned the bot tries again in another channel while still active
 # connect to voice channel [core feature]
-@client.command()
+@client.command(description= "makes bot join current channel or moves bot to current channel if already in another channel")
 async def join(ctx):
     #these two lines are the basis of all the bot voice activity
     #gets the server voice channels and where the user is located if they are in a voice channel
@@ -107,7 +107,7 @@ async def join(ctx):
         await voice_client.move_to(voice_channel)
     
 # Leave voice channel [core feature]
-@client.command()
+@client.command(description= "makes bot leave current voice channel")
 async def leave(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if not voice_client is None:
@@ -117,7 +117,7 @@ async def leave(ctx):
 # Youtube search function [core feature]
 # Sends an embed button for search results found on youtube
 # * grabs the context message and turns it into a string, args grabs all words into one string instead of only first word
-@client.command(aliases=['s'])
+@client.command(aliases=['s'], description= "searches for 5 songs relevent to search query and joins voice channel if not already in a channel")
 async def search(ctx, *args):
     global searchList
     query = ("+".join(args[:]))
@@ -133,7 +133,9 @@ async def search(ctx, *args):
     topFiveResults = []
     i = 0
     j = 1
-    await ctx.channel.send("\nSelect video with ?play and a number within 1-5 ex: ?play 1")
+    s = ""
+
+    await ctx.channel.send(">>> Retreiving results please wait" + ctx.author.mention)
     while True:
         if j > 5:
             break
@@ -143,11 +145,13 @@ async def search(ctx, *args):
         vidLength = str(datetime.timedelta(seconds=pytube.YouTube(vidLink).length))
         if (vidLink, vidTitle, vidLength, vidThumb) not in topFiveResults:
             topFiveResults.append((vidLink, vidTitle, vidLength, vidThumb))
-            await ctx.channel.send(str(j) + ": " + vidTitle +"\n")
+            s += str(j) + ": " + vidTitle + "\n"
             j+=1
         i +=1 
+    await ctx.channel.send("```\nSelect video with ?play and a number within 1-5 ex: ?play 1" + f'\n{s}``` ')
+        
     searchList = topFiveResults
-    print(searchList)
+    # print(searchList)
 
 # helper function get formatted webpage audio url
 async def getAudioURL(url):
@@ -156,15 +160,16 @@ async def getAudioURL(url):
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         webpage = ydl.extract_info(url, download=False)
     return webpage["formats"][0]["url"]
-    
+
+import asyncio  
 # Play youtube video [Core Feature]
-@client.command()
+@client.command(description= "plays song from song search")
 async def play(ctx, *, arg):
     if searchList == []:
-        await ctx.channel.send("Must use ?s _ or ?search _ to search for a video first")
+        await ctx.channel.send(">>> Must use ?s _ or ?search _ to search for a video first")
     choice = int(arg)
     if choice > 5 or choice < 1:
-        await ctx.channel.send("Needs to be a number within 1 and 5")
+        await ctx.channel.send(">>> Needs to be a number within 1 and 5")
     else:
         await join(ctx)
         voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild) 
@@ -178,25 +183,25 @@ async def play(ctx, *, arg):
             voice_client.play(discord.FFmpegPCMAudio(song_url, **FFMPEG_OPTS), after= None)
             # await ctx.channel.send("https://cdn.discordapp.com/emojis/651471037787013126.gif?size=32")
             await ctx.channel.send(searchList[choice-1][3])
-            await ctx.channel.send("Now playing\n" + searchList[choice-1][1] + "| Audio Length: " + searchList[choice-1][2])
+            await ctx.channel.send(">>> Now playing\n" + searchList[choice-1][1] + "| Audio Length: " + searchList[choice-1][2])
         except:
             songQueue.append(searchList[choice-1])
-            await ctx.channel.send("Added to queue\n" + searchList[choice-1][1] )
+            await ctx.channel.send(">>> Added to queue\n" + searchList[choice-1][1] )
             print(songQueue)
             
-@client.command()
+@client.command(description= "stops song and removes it from play")
 async def stop(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
     voice_client.stop()
     await ctx.channel.send("Song Stopped")
 
-@client.command()
+@client.command(description= "pauses song")
 async def pause(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild) 
     voice_client.pause()
     await ctx.channel.send("Song Paused")
     
-@client.command()
+@client.command(description= "resumes song")
 async def resume(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild) 
     voice_client.resume()
@@ -204,10 +209,10 @@ async def resume(ctx):
 
 #skips current song and plays the top of queue popped out
 #almost same as play function just use the queued items popped out as our url to play music from
-@client.command(aliases=['next'])
+@client.command(aliases=['next'], description= "skips current song and plays next in queue")
 async def skip(ctx):
+    voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if len(songQueue) > 0:
-        voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
         voice_client.stop()
         song = songQueue.pop()
         song_url = await getAudioURL(song[0])
@@ -216,16 +221,26 @@ async def skip(ctx):
         await ctx.channel.send(song[3])
         await ctx.channel.send("Now playing\n" + song[1] + "| Audio Length: " + song[2])
     else:
-        await ctx.channel.send("Song queue is currently empty nothing else to play")
+        await ctx.channel.send("Song queue is currently empty nothing else to play stopping song")
+        await voice_client.stop()   
 
-@client.command()
-async def q(ctx):
-    if songQueue is not None:
+@client.command(aliases=['q'], description= "Shows next song queue")
+async def upcoming(ctx):
+    if len(songQueue) > 0:
         await ctx.channel.send("Current Queue Items:\n")
+        s, j = "", 1
         for i in songQueue[:-1]:
-            await ctx.channel.send(i[1])
-
-   
+            s+= (str(j) + ": " + i[1] + "\n")
+            j+=1
+        await ctx.channel.send(s)
+    else:
+        await ctx.channel.send("Song queue is currently empty")
+    
+# @client.event
+# async def on_command_error(ctx, error):
+#     if isinstance(error, commands.CommandNotFound): 
+#         await ctx.channel.send("?help for valid bot commands")
+    
 # --------------------------------------------------------------------------------------------------------------------------------------------------------#
 # extra functions for fun
 
