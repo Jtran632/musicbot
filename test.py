@@ -28,6 +28,3 @@
 #     song_info = ydl.extract_info("https://www.youtube.com/watch?v=yRljn8NaDDE", download=False)
 # song_url = song_info["formats"][0]["url"]
 # print(song_info)
-
-
-  

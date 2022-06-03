@@ -7,10 +7,7 @@ client = discord.Client()
 
 #ctx is context
 async def league(ctx):
-    await ctx.channel.send("League is fucking trash")
-#test event
-async def randomQuote(ctx):
-    await ctx.channel.send("random")
+    await ctx.channel.send("Ew League")
 
 #joke event
 async def devourQuote(ctx):
