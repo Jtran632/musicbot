@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import urllib.request as req
 import pytube 
 import re
+import asyncio  
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -71,8 +72,6 @@ async def on_message(message):
         "yo" in message.content.lower() or
         "hola" in message.content.lower()):
         await message.channel.send("Hello! {}".format(message.author.mention))
-    if "random" in message.content.lower():
-        await com.randomQuote(message)
     elif "bd" in message.content.lower() or "birthday" in message.content.lower():
         await message.channel.send("Happy Birthday! ! !")
     elif "lol" in message.content.lower() or "urf" in message.content.lower() or "league" in message.content.lower():
@@ -161,7 +160,6 @@ async def getAudioURL(url):
         webpage = ydl.extract_info(url, download=False)
     return webpage["formats"][0]["url"]
 
-import asyncio  
 # Play youtube video [Core Feature]
 @client.command(description= "plays song from song search")
 async def play(ctx, *, arg):
@@ -193,19 +191,19 @@ async def play(ctx, *, arg):
 async def stop(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
     voice_client.stop()
-    await ctx.channel.send("Song Stopped")
+    await ctx.channel.send(">>> Song Stopped")
 
 @client.command(description= "pauses song")
 async def pause(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild) 
     voice_client.pause()
-    await ctx.channel.send("Song Paused")
+    await ctx.channel.send(">>> Song Paused")
     
 @client.command(description= "resumes song")
 async def resume(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild) 
     voice_client.resume()
-    await ctx.channel.send("Song Resumed")
+    await ctx.channel.send(">>> Song Resumed")
 
 #skips current song and plays the top of queue popped out
 #almost same as play function just use the queued items popped out as our url to play music from
@@ -214,28 +212,47 @@ async def skip(ctx):
     voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
     if len(songQueue) > 0:
         voice_client.stop()
-        song = songQueue.pop()
+        song = songQueue.pop(0)
         song_url = await getAudioURL(song[0])
         voice_client.play(discord.FFmpegPCMAudio(song_url, **FFMPEG_OPTS), after= None)
         # await ctx.channel.send("https://cdn.discordapp.com/emojis/651471037787013126.gif?size=32")
         await ctx.channel.send(song[3])
-        await ctx.channel.send("Now playing\n" + song[1] + "| Audio Length: " + song[2])
+        await ctx.channel.send(">>> Now playing\n" + song[1] + "| Audio Length: " + song[2])
     else:
-        await ctx.channel.send("Song queue is currently empty nothing else to play stopping song")
+        await ctx.channel.send(">>> Song queue is currently empty nothing else to play stopping song")
         await voice_client.stop()   
 
 @client.command(aliases=['q'], description= "Shows next song queue")
 async def upcoming(ctx):
     if len(songQueue) > 0:
-        await ctx.channel.send("Current Queue Items:\n")
+        await ctx.channel.send(">>> Current Queue Items:\n")
         s, j = "", 1
-        for i in songQueue[:-1]:
+        for i in songQueue:
             s+= (str(j) + ": " + i[1] + "\n")
             j+=1
-        await ctx.channel.send(s)
+        await ctx.channel.send("```" + s + "\nTo play the next song in queue use ?skip or ?next, to play a specific song in queue use ?qp _ or ?queueplay _ ```")
     else:
         await ctx.channel.send("Song queue is currently empty")
-    
+
+@client.command(aliases=['qp'], description= "Plays a specific song from queue")
+async def queueplay(ctx, *, arg):
+    voice_client = discord.utils.get(client.voice_clients, guild=ctx.guild)
+    if len(songQueue) > 0:
+        choice = int(arg)
+        if choice >  len(songQueue) or choice < 0:
+            if len(songQueue) == 1:
+                await ctx.channel.send(">>> Queue length is 1 use ?skip or ?next")
+            else:
+                await ctx.channel.send(">>> Choice needs a number within 1 and " + str(len(songQueue)))
+        else:
+            voice_client.stop()
+            song = songQueue.pop(choice-1)
+            song_url = await getAudioURL(song[0])
+            voice_client.play(discord.FFmpegPCMAudio(song_url, **FFMPEG_OPTS), after= None)
+            await ctx.channel.send(song[3])
+            await ctx.channel.send(">>> Now playing\n" + song[1] + "| Audio Length: " + song[2])
+    else:
+        await ctx.channel.send(">> Song queue is currently empty nothing else to play stopping song")
 # @client.event
 # async def on_command_error(ctx, error):
 #     if isinstance(error, commands.CommandNotFound): 
