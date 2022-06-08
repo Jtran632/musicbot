@@ -201,7 +201,7 @@ class Extra(commands.Cog):
         tier = ""
         temp = ""
         for i in soup.select('img[src*="assets/images/tiers/"]'):
-            tier += i["alt"].capitalize() + "\n"
+            temp += i["alt"].capitalize() + "\n"
         if len(temp) != 0:
             tier+= "Tier: " + temp
         else:
