@@ -121,6 +121,163 @@ class Extra(commands.Cog):
             await ctx.channel.send(">>> Either the player name is wrong or the tag, try again") 
         else:
             await ctx.channel.send(">>> Stats for: " + str(arg) + "```" + player + "```") 
+
+    #all soup select and findalls where done painfully by looking at website html to get the correct queries 
+    @commands.command(aliases=["c"])
+    async def champ(self, ctx, *, arg):
+        """Input champ and role to get champ data ex:?c velkoz mid| ?c"""
+        """Ex: ?c velkoz mid"""
+        l = str(arg).lower().split(" ")
+        imageURL = ""
+        name = l[0]
+        role = l[1]
+        #special cases on opgg and other league related stat trackers
+        if name == "wukong":
+            name = "monkeyking"
+        if name == "mundo":
+            name = "drmundo"
+        if name == "jarvan":
+            name = "jarvaniv"
             
+        if role == "jgl" or role == "jg" or role == "j":
+            role = "jungle"
+        if role == "ad" or role == "marksman" or role == "a":
+            role = "adc"
+        if role == "t":
+            role = "top"
+        if "su" in role or role == "s":
+            role = "support"
+        if role == "m":
+            role = "mid"
+            
+        URL = f"https://na.op.gg/champions/{name}/{role}/build?region=na&tier=platinum_plus"
+        #user agent so that we don't have our GET requests blocked
+        headers = {'User-Agent': 'Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11'}
+        page = requests.get(URL, headers=headers)
+        soup = BeautifulSoup(page.content, "html.parser")
+
+        #could not get build data from scraping op.gg and u.gg so I used metasrc
+        URL2 = f"https://www.metasrc.com/5v5/champion/{name}/{role}"
+        itempage = requests.get(URL2, headers=headers).text
+        soup2 = BeautifulSoup(itempage, "html.parser")
+        
+        #get champion image to use
+        for i in soup.select('img[src*="/images/lol/champion/"]'):
+            if name in i["src"].lower():
+                imageURL = (i["src"])
+                
+        #get most common starting items and full build for champion and role
+        items = ""
+        temp = "" 
+        count = 0
+        for i in soup2.select('img[style="width: 42px;height: 42px;"]'):
+            if count == 2:
+                temp+= "~ ~ ~ Full Build ~ ~ ~ \n"
+                count+=1
+            if "elixir" in i["alt"].lower():
+                temp+= "\n*" + i["alt"] + "\n - - - - - - - - -\n"
+                break
+            if "/img/item/" in i["data-src"]:
+                if "ward" in i["alt"].lower() or "lens" in i["alt"].lower():
+                    temp+= "*" + i["alt"] 
+                    if count < 2:
+                        temp += "\n - - - - - - - - -\n"
+                    count+=1
+                else:
+                    temp+= "*" + i["alt"] + "\n"
+        if len(temp) != 0:
+            items += "~ ~ ~ Starting Items ~ ~ ~\n" + temp
+        else:
+            items+=f"Not enough data for {name} {role} for items"
+            
+        #get tier ranking from OP,1,2,3,4,5 (highest to lowest) for champion and role
+        tier = ""
+        temp = ""
+        for i in soup.select('img[src*="assets/images/tiers/"]'):
+            tier += i["alt"].capitalize() + "\n"
+        if len(temp) != 0:
+            tier+= "Tier: " + temp
+        else:
+            tier += f"Tier: Unknown"    
+            
+        #get summoner spell data for champion and role
+        spells = ""
+        temp = ""
+        count = 0
+        for i in soup.select('img[src*="/images/lol/spell/Summoner"]'):
+            if count == 2:
+                temp+= "\n"
+            if i["alt"]:
+                temp+= (i["alt"]) + " "
+                count+=1
+        if len(temp) != 0:
+            spells+= "\n~ ~ ~ Summoner Spells ~ ~ ~\n" + temp
+            
+        #get mosted used skill order 
+        skillOrder = ""
+        for i in soup.select('div[class*="e1mrkevn3"]'):
+            skillOrder += i.get_text()
+        skillOrder = list(skillOrder)
+        skillOrder[2], skillOrder[3] = skillOrder[3], skillOrder[2]
+        skillOrder = ' > '.join(skillOrder)
+        if len(skillOrder) == 0:
+            skillOrder+=f"Not enough data for {name} {role} for skillOrder"
+            
+        #get most common used runes for champion and role
+        runes=""
+        temp = ""
+        j = soup.find_all("img")
+        for i in j:
+            if ("/images/lol/perk" in i["src"] 
+                and "grayscale" not in i["src"] 
+                and "perkShard" not in i["src"] 
+                and "48&v" not in i["src"] 
+                and "56&v" not in i["src"]):
+                
+                if i["src"] not in runes:
+                    if "perkStyle" not in i["src"]:
+                        runes+= "* " + i["alt"] + "\n"
+                    else:
+                        runes+= "- " + i["alt"] + " -"+ "\n"
+        if len(temp) != 0:
+            runes+= "~ ~ ~ Runes ~ ~ ~\n" + temp     
+        else:
+            if len(runes) == 0:
+                runes += f"Not enough data for {name} {role} for runes"
+                
+        #get 5 weakest matchups and 5 strongest matchups for champion and role
+        matchups = ""
+        j = soup.find_all("a")
+        count = 0
+        for i in j:
+            if count == 5:
+                matchups+= "\n- Strong Against -\n"
+            if "plus&target_champion=" in i["href"]:
+                if count == 0:
+                    matchups += "~ ~ ~ Match Ups ~ ~ ~\n"
+                    matchups += "- Weak Against -\n"
+                temp= ((i["href"]).split("="))
+                temp[-1] = temp[-1].capitalize()
+                if temp[-1] == "Monkeyking":
+                    temp[-1] == "Wukong"
+                matchups += "* " +temp[-1]
+            if i.select('div[class*="win-rate"]'):
+                matchups += " " + (i.text.strip().split("%"))[0] + "%\n"
+                count+=1
+        if len(matchups) == 0:
+            matchups += f"Not enough data for {name} {role} for matchups"
+
+        #concat all data together besides image url
+        champData = (f"Champ: {name.capitalize()}" + "\n" 
+                    + f"Role: {role.capitalize()}\n" 
+                    + tier + "\n"
+                    + spells + "\n\n"
+                    + "Skill Order: " + skillOrder + "\n\n"
+                    + items + "\n"
+                    + runes + "\n" 
+                    + matchups)
+        await ctx.channel.send(imageURL)
+        await ctx.channel.send("```" + champData + "```")
+       
 def setup(client):
     client.add_cog(Extra(client))
