@@ -82,8 +82,8 @@ from bs4 import BeautifulSoup
 #                         )
 #     print(s)
 # imageURL = ""
-# name = "velkoz"
-# role = "mid"
+# name = "alistar"
+# role = "top"
 # #special cases on opgg and other league related stat trackers
 # if name.lower() == "wukong":
 #     name = "monkeyking"
@@ -104,22 +104,30 @@ from bs4 import BeautifulSoup
 
 # items = "~ ~ ~ Starting Items ~ ~ ~\n" 
 # count = 0
+# fullBuildCount = 0
 # for i in soup2.select('img[style="width: 42px;height: 42px;"]'):
+#     if count > 2:
+#         fullBuildCount += 1
 #     if count == 2:
 #         items+= "~ ~ ~ Full Build ~ ~ ~ \n"
 #         count+=1
-#     if "elixir" in i["alt"].lower():
-#         items+= "\n*" + i["alt"] + "\n - - - - - - - - -\n"
-#         break
+#     if fullBuildCount >= 7:
+#         if "elixir" in i["alt"].lower():
+#             items+= "\n*" + i["alt"] + "\n - - - - - - - - -\n"
+#             break
+#         else:
+#             items+= "\n - - - - - - - - -\n"
+#             break
 #     if "/img/item/" in i["data-src"]:
 #         if "ward" in i["alt"].lower() or "lens" in i["alt"].lower():
 #             items+= "*" + i["alt"] 
-#             if count < 2:
+#             if count < 2 :
 #                 items += "\n - - - - - - - - -\n"
 #             count+=1
 #         else:
 #             items+= "*" + i["alt"] + "\n"
-
+            
+# print(fullBuildCount)
 # #get summoner spell data for champion and role
 # spells = ""
 # count = 0

@@ -170,13 +170,20 @@ class Extra(commands.Cog):
         items = ""
         temp = "" 
         count = 0
+        fullBuildCount = 0
         for i in soup2.select('img[style="width: 42px;height: 42px;"]'):
+            if count > 2:
+                fullBuildCount += 1
             if count == 2:
                 temp+= "~ ~ ~ Full Build ~ ~ ~ \n"
                 count+=1
-            if "elixir" in i["alt"].lower():
-                temp+= "\n*" + i["alt"] + "\n - - - - - - - - -\n"
-                break
+            if fullBuildCount >= 7:
+                if "elixir" in i["alt"].lower():
+                    temp+= "\n*" + i["alt"] + "\n - - - - - - - - -\n"
+                    break
+                else:
+                    temp+= "\n - - - - - - - - -\n"
+                    break
             if "/img/item/" in i["data-src"]:
                 if "ward" in i["alt"].lower() or "lens" in i["alt"].lower():
                     temp+= "*" + i["alt"] 
