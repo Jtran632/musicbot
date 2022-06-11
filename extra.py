@@ -38,7 +38,8 @@ class Extra(commands.Cog):
         d= p + rand
         name = rand.rsplit(".",1)[0]
         await ctx.channel.send(name, file=discord.File(d))
-        
+       
+    #json data from https://nookipedia.com/
     @commands.command(aliases=["ac"], description="Pick out a animal crossing villager of your choice or pick a random villager ex: ?ac ace or ?ac random or ?ac r")
     async def animalcrossing(self, ctx, *, arg):
         """Input name to pull out villager info or pick a random one | ?ac"""
@@ -49,43 +50,44 @@ class Extra(commands.Cog):
         s= ""
         query = str(arg).lower()
         if query == "random" or query == "r":
-            rand = random.randint(0, 480)
-            URL += (villagers[rand]["image_url"])
+            rand = random.randint(0, 489)
+            URL += (villagers[rand]["title"]["image_url"])
             s+= "\n".join(
-                        ("Name: " + villagers[rand]["name"], 
-                        "Species: " + villagers[rand]["species"],
-                        "Personality: " + villagers[rand]["personality"],
-                        "Gender: " + villagers[rand]["gender"],
-                        "Birthday Month: " + villagers[rand]["birthday_month"],
-                        "Birthday Day: " + villagers[rand]["birthday_day"],
-                        "Sign: " + villagers[rand]["sign"],
-                        "Favorite Saying: " + villagers[rand]["quote"],
-                        "Catch Phrase: " + villagers[rand]["phrase"],
-                        "Clothing: " + villagers[rand]["clothing"])
+                        ("Name: " + villagers[rand]["title"]["name"], 
+                        "Species: " + villagers[rand]["title"]["species"],
+                        "Personality: " + villagers[rand]["title"]["personality"],
+                        "Gender: " + villagers[rand]["title"]["gender"],
+                        "Birthday Month: " + villagers[rand]["title"]["birthday_month"],
+                        "Birthday Day: " + villagers[rand]["title"]["birthday_day"],
+                        "Sign: " + villagers[rand]["title"]["sign"],
+                        "Favorite Saying: " + villagers[rand]["title"]["quote"],
+                        "Catch Phrase: " + villagers[rand]["title"]["phrase"],
+                        "Clothing: " + villagers[rand]["title"]["clothing"])
                         )
             await ctx.channel.send(URL)
             await ctx.channel.send(">>> \n" + "```" + s + "```")
         else:
             for i in villagers:
-                if i["name"].lower() == query:
+                if i["title"]["name"].lower() == query:
                     if len(URL) == 0:
-                        URL += i["image_url"]
+                        URL += i["title"]["image_url"]
                     s+= "\n".join(
-                                ("Name: " + i["name"], 
-                                "Species: " + i["species"],
-                                "Personality: " + i["personality"],
-                                "Gender: " + i["gender"],
-                                "Birthday Month: " + i["birthday_month"],
-                                "Birthday Day: " + i["birthday_day"],
-                                "Sign: " + i["sign"],
-                                "Favorite Saying: " + i["quote"],
-                                "Catch Phrase: " + i["phrase"],
-                                "Clothing: " + i["clothing"])
+                                ("Name: " +i["title"]["name"], 
+                                "Species: " + i["title"]["species"],
+                                "Personality: " + i["title"]["personality"],
+                                "Gender: " + i["title"]["gender"],
+                                "Birthday Month: " + i["title"]["birthday_month"],
+                                "Birthday Day: " + i["title"]["birthday_day"],
+                                "Sign: " + i["title"]["sign"],
+                                "Favorite Saying: " + i["title"]["quote"],
+                                "Catch Phrase: " + i["title"]["phrase"],
+                                "Clothing: " + i["title"]["clothing"])
                                 )
-            if len(s) != 0:
+            if len(s) > 0:
                 await ctx.channel.send(URL)
                 await ctx.channel.send(">>> \n" + "```" + s + "```")
             else:
+                print(len(s))
                 await ctx.channel.send(">>> Sorry the villager name you're looking for isn't correct please try again with ?ac _ or ?ac r or ?ac random")
                 
     @commands.command(aliases=["v"], description="Shows a valorant players stats for the current act ex: ?valo test#NA1")
