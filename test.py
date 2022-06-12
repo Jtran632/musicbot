@@ -207,4 +207,3 @@ from bs4 import BeautifulSoup
 #              + matchups)
 
 # print(champData)
-
