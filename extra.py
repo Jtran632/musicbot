@@ -128,7 +128,7 @@ class Extra(commands.Cog):
     @commands.command(aliases=["c"])
     async def champ(self, ctx, *, arg):
         """Input champ and role to get champ data ex:?c velkoz mid| ?c"""
-        """Ex: ?c velkoz mid"""
+        
         l = str(arg).lower().split(" ")
         imageURL = ""
         name = l[0]
@@ -149,7 +149,7 @@ class Extra(commands.Cog):
             role = "top"
         if "su" in role or role == "s":
             role = "support"
-        if role == "m":
+        if role == "m" or role == "middle":
             role = "mid"
             
         URL = f"https://na.op.gg/champions/{name}/{role}/build?region=na&tier=platinum_plus"
@@ -177,7 +177,7 @@ class Extra(commands.Cog):
             if count > 2:
                 fullBuildCount += 1
             if count == 2:
-                temp+= "~ ~ ~ Full Build ~ ~ ~ \n"
+                temp+= "~ ~ ~ Full Build Order ~ ~ ~ \n"
                 count+=1
             if fullBuildCount >= 7:
                 if "elixir" in i["alt"].lower():
@@ -223,9 +223,18 @@ class Extra(commands.Cog):
             spells+= "\n~ ~ ~ Summoner Spells ~ ~ ~\n" + temp
             
         #get mosted used skill order 
+        #Getting off a different url because it was getting out dated skill order now uses most popular
+        URLSKILLS = F"https://na.op.gg/champions/{name}/{role}/skills"
+        skillpage = requests.get(URLSKILLS, headers=headers).text
+        soup3 = BeautifulSoup(skillpage, "html.parser")
+        li = soup3.find('div', id='content-container').findAll('div', class_="skill_command_box")
         skillOrder = ""
-        for i in soup.select('div[class*="e1mrkevn3"]'):
-            skillOrder += i.get_text()
+        for i in li:
+            if i.select('div[class*="hot-key"]'):
+                skillOrder += i.text
+                if len(skillOrder) == 3:
+                    skillOrder += "R"
+                    break
         skillOrder = list(skillOrder)
         skillOrder[2], skillOrder[3] = skillOrder[3], skillOrder[2]
         skillOrder = ' > '.join(skillOrder)
@@ -243,16 +252,15 @@ class Extra(commands.Cog):
                 and "48&v" not in i["src"] 
                 and "56&v" not in i["src"]):
                 
-                if i["src"] not in runes:
+                if i["src"] not in temp:
                     if "perkStyle" not in i["src"]:
-                        runes+= "* " + i["alt"] + "\n"
+                        temp+= "* " + i["alt"] + "\n"
                     else:
-                        runes+= "- " + i["alt"] + " -"+ "\n"
+                        temp+= "- " + i["alt"] + " -"+ "\n"
         if len(temp) != 0:
-            runes+= "~ ~ ~ Runes ~ ~ ~\n" + temp     
+            runes += "~ ~ ~ Runes ~ ~ ~\n" + temp     
         else:
-            if len(runes) == 0:
-                runes += f"Not enough data for {name} {role} for runes"
+            runes += f"Not enough data for {name} {role} for runes"
                 
         #get 5 weakest matchups and 5 strongest matchups for champion and role
         matchups = ""
@@ -279,7 +287,7 @@ class Extra(commands.Cog):
         #concat all data together besides image url
         champData = (f"Champ: {name.capitalize()}" + "\n" 
                     + f"Role: {role.capitalize()}\n" 
-                    + tier + "\n"
+                    + tier 
                     + spells + "\n\n"
                     + "Skill Order: " + skillOrder + "\n\n"
                     + items + "\n"
