@@ -100,7 +100,7 @@ class Extra(commands.Cog):
         URL = "https://tracker.gg/valorant/profile/riot/"+ arg1 + "%23" + arg2 + "/overview"
         page = requests.get(URL)
         soup = BeautifulSoup(page.content, "html.parser")
-        
+        player = ""
         #get current rank
         j = soup.findAll(class_="stat")
         for i in j:
