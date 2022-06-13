@@ -1,6 +1,5 @@
 #file used for independently testing pure python without starting the bot
 import urllib.request as req
-from matplotlib import style
 import pytube 
 import re
 from soupsieve import match, select
@@ -207,3 +206,21 @@ from bs4 import BeautifulSoup
 #              + matchups)
 
 # print(champData)
+
+# import requests
+# import ssl
+
+# url = 'https://tracker.gg/valorant/profile/riot/renedeer%23na1/overview/'
+
+# class TLSAdapter(requests.adapters.HTTPAdapter):
+
+#     def init_poolmanager(self, *args, **kwargs):
+#         ctx = ssl.create_default_context()
+#         ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+#         kwargs['ssl_context'] = ctx
+#         return super(TLSAdapter, self).init_poolmanager(*args, **kwargs)
+
+# session = requests.session()
+# session.mount('https://', TLSAdapter())
+# res = session.get(url)
+# print(res)
