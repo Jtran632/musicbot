@@ -89,7 +89,7 @@ class Extra(commands.Cog):
             else:
                 print(len(s))
                 await ctx.channel.send(">>> Sorry the villager name you're looking for isn't correct please try again with ?ac _ or ?ac r or ?ac random")
-                
+         
     @commands.command(aliases=["v"], description="Shows a valorant players stats for the current act ex: ?valo test#NA1")
     async def valo(self, ctx, *, arg):
         """Input valorant name#tag for current act stats | ?v"""
@@ -100,7 +100,7 @@ class Extra(commands.Cog):
         URL = "https://tracker.gg/valorant/profile/riot/"+ arg1 + "%23" + arg2 + "/overview"
         page = requests.get(URL)
         soup = BeautifulSoup(page.content, "html.parser")
-        
+        player = ""
         #get current rank
         j = soup.findAll(class_="stat")
         for i in j:
@@ -121,6 +121,7 @@ class Extra(commands.Cog):
                 
         if len(player) == 0:
             await ctx.channel.send(">>> Either the player name is wrong or the tag, try again") 
+            await ctx.channel.send(">>> If message above takes more than 3 seconds website information is taken from is not cooperating with the bot") 
         else:
             await ctx.channel.send(">>> Stats for: " + str(arg) + "```" + player + "```") 
 
