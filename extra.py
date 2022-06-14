@@ -1,3 +1,5 @@
+from importlib.metadata import metadata
+from wsgiref import headers
 import discord
 from discord.ext import commands
 import os
@@ -7,7 +9,9 @@ import json
 import requests
 import re
 from bs4 import BeautifulSoup
-
+from PIL import Image 
+from io import BytesIO
+import time
 # extra commands just for fun and learning
 class Extra(commands.Cog):
     """Extra Commands"""
@@ -89,42 +93,204 @@ class Extra(commands.Cog):
             else:
                 print(len(s))
                 await ctx.channel.send(">>> Sorry the villager name you're looking for isn't correct please try again with ?ac _ or ?ac r or ?ac random")
-         
-    @commands.command(aliases=["v"], description="Shows a valorant players stats for the current act ex: ?valo test#NA1")
-    async def valo(self, ctx, *, arg):
-        """Input valorant name#tag for current act stats | ?v"""
+                
+    @commands.command(aliases=["va"])
+    async def valagent(self, ctx, *, arg):
+        """Input ?agent name or ?va name valorant agent skills| ?va"""
+        page = requests.get("https://valorant-api.com/v1/agents")
+        data = page.json()
+        j = 0
+        imageURL = ""
+        abilities = ""
+        skills = ""
+        embed = discord.Embed()
+        for i in data['data']:
+            if i["isPlayableCharacter"]:
+                j+=1
+                if arg.lower() == i['displayName'].lower():
+                    abilities = i['abilities']
+                    imageURL = i['displayIcon']
+                    
+        embed.set_image(url=imageURL,)
+        for i in abilities:
+            skills+= i['slot'] + ": "
+            skills+= i['displayName'] + "\n"
+            skills+= i['description'] + "\n\n"
+        await ctx.channel.send(embed=embed)
+        await ctx.channel.send(">>> " + "```" + skills + "```" )
+        
+    @commands.command(aliases=["vmmr"])
+    async def valmmr(self, ctx, *, arg):
+        """Input ?valmmr name/tag or ?vmmr name/tag to check comp stats"""
         s = str(arg)
         s = s.replace(" ", "%20")
-        s = str(arg).split("#")
-        arg1, arg2, player = s[0], s[1], ""
-        URL = "https://tracker.gg/valorant/profile/riot/"+ arg1 + "%23" + arg2 + "/overview"
-        page = requests.get(URL)
-        soup = BeautifulSoup(page.content, "html.parser")
-        player = ""
-        #get current rank
-        j = soup.findAll(class_="stat")
-        for i in j:
-            if i.find("span", class_="stat__value"):
-                player += (i.text.strip() + "\n")    
-                
-        #get all match stats without top/bottom percentile scores because it looks too cluttered in a discored message
-        j = soup.findAll(class_="numbers")
-        for i in j:
-            words = i.text.strip()
-            if "Bottom" in words:
-                player += (words[:words.find("Bottom")] + "\n")
-            elif "Top" in words:   
-                a = re.search(r'\b(top)\b', i.text.strip())
-                player += (words[:words.find("Top")] + "\n")
-            else:
-                player += (words + "\n")
-                
-        if len(player) == 0:
-            await ctx.channel.send(">>> Either the player name is wrong or the tag, try again") 
-            await ctx.channel.send(">>> If message above takes more than 3 seconds website information is taken from is not cooperating with the bot") 
+        s = str(arg).split("/")
+        name, tag=  s[0], s[1]
+        if len(s)!=2:
+            print("Wrong input")
+            return
+        URL = f"https://api.henrikdev.xyz/valorant/v2/mmr/na/{name}/{tag}"
+        headers = {'User-Agent': 'Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11'}
+        page = requests.get(URL, headers=headers)
+        json_ = page.json()
+        
+        s = ""
+        if json_['data']['current_data']['currenttierpatched'] == None:
+            await ctx.channel.send(">>> Hasn't placed yet or Unrated")
+            return
+        s+= (
+             json_['data']['name'] + " #" + json_['data']['tag'] + "\n" 
+             + "Current Act Rank: " + json_['data']['current_data']['currenttierpatched'] + "\n"
+             + "Elo: " + str(json_['data']['current_data']['elo']) + "\n\n"
+            )
+        l = []
+        for i in json_['data']['by_season']:
+            l.append(str(i))
+        for i in l:
+            if len(json_['data']['by_season'][i]) > 1:
+                temp = i.replace("e", "Episode ").replace("a", " Act ")
+                s+= str(temp) + "\n"
+                s+= (
+                    "Wins: " + str(json_['data']['by_season'][i]['wins']) + "\n"
+                    + "Number of Games: " + str(json_['data']['by_season'][i]['number_of_games']) + "\n"
+                    + "Final Ranking: " + json_['data']['by_season'][i]['final_rank_patched'] + "\n\n"
+                    )
+        await ctx.channel.send(">>> ```" + s + "```")
+        
+    @commands.command(aliases=["vm"])
+    async def valmatch(self, ctx, *, arg):
+        """Input ?vm name/tag/mode or ?vm name/tag for previous matches"""
+        s = str(arg)
+        s = s.replace(" ", "%20")
+        s = str(arg).split("/")
+        nofilter = False
+        if len(s) == 2 or len(s) == 3 and s[2] == '':
+            name, tag, filter_, nofilter = s[0], s[1], '', True
+        elif len(s) == 3 and s[2] != '':
+            if "co" in s[2].lower():
+                s[2] = "competitive"
+            elif "un" in s[2].lower() or s[2].lower() == "ur":
+                s[2] = 'unrated'
+            elif "de" in s[2].lower() or s[2].lower() == "dm":
+                s[2] = "deathmatch"
+            elif "es" in s[2].lower():
+                s[2] = "escalation"
+            elif "re" in s[2].lower():
+                s[2] = "replication"
+            print(s[2])
+            name, tag, filter_=  s[0], s[1], s[2]
         else:
-            await ctx.channel.send(">>> Stats for: " + str(arg) + "```" + player + "```") 
+            await ctx.channel.send("Please try again in this format ?vm name/tag/filter or ?vm name/tag e.x ?vm asdf/1234/comp\n"
+                                   +"Mode filters[competitve/comp, unrated/ur, deathmatch/dm, replication/rep, escalation/esc]")
+            return
+        
+        if nofilter == True:
+            URL = f"https://api.henrikdev.xyz/valorant/v3/matches/na/{name}/{tag}"
+        else:
+            URL = f"https://api.henrikdev.xyz/valorant/v3/matches/na/{name}/{tag}?filter={filter_}"
+        # print( name + " " + tag  + " " + filter_)
+        headers = {'User-Agent': 'Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11'}
+        page = requests.get(URL, headers=headers)
+        json_ = page.json()
+        s = ""
+        comp = False
+        if len(json_['data']) > 0:
+            await ctx.channel.send(f">>> Previous matches for {name} #{tag} (Up to 5) \n")
+            for i in json_['data']:
+                if i["metadata"]:
+                    s+= (
+                        i["metadata"]['map'] + "\n"
+                        + i["metadata"]['mode'] + "\n"
+                        + i["metadata"]['game_start_patched'] + "\n"
+                        + i["metadata"]['cluster'] + "\n"
+                        )
+                if i["metadata"]['mode'] == 'Competitive':
+                    comp = True
+                if i["teams"]['red']['has_won'] == True:
+                    s+= (
+                        "Winner Team A - " + "Score: " 
+                        + str(i["teams"]['red']['rounds_won']) 
+                        + ":" + str(i["teams"]['red']['rounds_lost']) +"\n\n"
+                        )
+                else:
+                    s+= (
+                        "Winner Team B - " 
+                        + "Score: " + str(i["teams"]['blue']['rounds_won']) 
+                        + ":" + str(i["teams"]['blue']['rounds_lost']) +"\n\n"
+                        )
+                    
+                if i['players']['red']:
+                    s+=("- - - - - TEAM A - - - - -\n")
+                    for h in i['players']['red']:
+                        s+= h['name']+" #"+h['tag']+ "\n"
+                        s+= "Agent: " + h['character']+ "\n"
+                        if comp == True:
+                             s+= "Rank: " + h['currenttier_patched'] + "\n"
+                        s+= (
+                            "Score: Kills: " + str(h['stats']['kills']) 
+                            + " Deaths: "  + str(h['stats']['deaths']) 
+                            + " Assists: " + str(h['stats']['assists']) + "\n\n"
+                            )
+                        
+                if i['players']['blue']:
+                    s+=("- - - - - TEAM B - - - - -\n")
+                    for h in i['players']['blue']:
+                        s+= h['name']+" #"+h['tag']+ "\n"
+                        s+= "Agent: " + h['character']+ "\n"
+                        if comp == True:
+                            s+= "Rank: " + h['currenttier_patched'] + "\n"
+                        s+= (
+                            "Score: Kills: " + str(h['stats']['kills']) 
+                            + " Deaths: "  + str(h['stats']['deaths']) 
+                            + " Assists: " + str(h['stats']['assists']) + "\n\n"
+                            )
+                        
+                mapData = ">>> ```" + s + "```"
+                await ctx.channel.send(mapData)
+                s = ""
+                comp = False
+        else:
+            if len(filter_) != 0:
+                await ctx.channel.send(f"Not enough matches of {filter_} to be shown")
+            else:
+                await ctx.channel.send(f"Not enough data for match history")
 
+    # No longer working because site has blocked webscraping, could not find a way to bypass
+    # @commands.command(aliases=["v"], description="Shows a valorant players stats for the current act ex: ?valo test#NA1")
+    # async def valo(self, ctx, *, arg):
+    #     """Input valorant name#tag for current act stats | ?v"""
+    #     s = str(arg)
+    #     s = s.replace(" ", "%20")
+    #     s = str(arg).split("#")
+    #     arg1, arg2, player = s[0], s[1], ""
+    #     URL = "https://tracker.gg/valorant/profile/riot/"+ arg1 + "%23" + arg2 + "/overview"
+    #     page = requests.get(URL)
+    #     soup = BeautifulSoup(page.content, "html.parser")
+    #     player = ""
+    #     #get current rank
+    #     j = soup.findAll(class_="stat")
+    #     for i in j:
+    #         if i.find("span", class_="stat__value"):
+    #             player += (i.text.strip() + "\n")    
+                
+    #     #get all match stats without top/bottom percentile scores because it looks too cluttered in a discored message
+    #     j = soup.findAll(class_="numbers")
+    #     for i in j:
+    #         words = i.text.strip()
+    #         if "Bottom" in words:
+    #             player += (words[:words.find("Bottom")] + "\n")
+    #         elif "Top" in words:   
+    #             a = re.search(r'\b(top)\b', i.text.strip())
+    #             player += (words[:words.find("Top")] + "\n")
+    #         else:
+    #             player += (words + "\n")
+                
+    #     if len(player) == 0:
+    #         await ctx.channel.send(">>> Either the player name is wrong or the tag, try again") 
+    #         await ctx.channel.send(">>> If message above takes more than 3 seconds website information is taken from is not cooperating with the bot") 
+    #     else:
+    #         await ctx.channel.send(">>> Stats for: " + str(arg) + "```" + player + "```") 
+    
     #all soup select and findalls where done painfully by looking at website html to get the correct queries 
     @commands.command(aliases=["c"])
     async def champ(self, ctx, *, arg):
