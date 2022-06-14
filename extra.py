@@ -9,9 +9,7 @@ import json
 import requests
 import re
 from bs4 import BeautifulSoup
-from PIL import Image 
-from io import BytesIO
-import time
+
 # extra commands just for fun and learning
 class Extra(commands.Cog):
     """Extra Commands"""
