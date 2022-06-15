@@ -1,3 +1,4 @@
+from http import client
 from importlib.metadata import metadata
 from wsgiref import headers
 import discord
@@ -9,9 +10,8 @@ import json
 import requests
 import re
 from bs4 import BeautifulSoup
-from PIL import Image 
-from io import BytesIO
-import time
+import bot
+
 # extra commands just for fun and learning
 class Extra(commands.Cog):
     """Extra Commands"""
@@ -293,9 +293,12 @@ class Extra(commands.Cog):
     
     #all soup select and findalls where done painfully by looking at website html to get the correct queries 
     @commands.command(aliases=["c"])
-    async def champ(self, ctx, *, arg):
+    async def champ(self, ctx, *, arg: str = ""):
         """Input champ and role to get champ data ex:?c velkoz mid| ?c"""
-        
+        arg = arg.replace("'", "").replace('"', "").replace("”", '"').replace("‟", '"').replace("’", "")
+        lst = list(arg.split(" "))
+        arg = [x for x in lst]
+        arg = " ".join(arg)
         l = str(arg).lower().split(" ")
         imageURL = ""
         name = l[0]
@@ -462,6 +465,33 @@ class Extra(commands.Cog):
                     + matchups)
         await ctx.channel.send(imageURL)
         await ctx.channel.send("```" + champData + "```")
-       
+        
+    @commands.command(aliases=["ud"])
+    async def urbandict(self, ctx, *, args):
+        """Input ?urbandict term or ?ud term to get definition for slang"""
+        url = "https://mashape-community-urban-dictionary.p.rapidapi.com/define"
+        querystring = {"term":f"{args}"}
+
+        headers = {
+            "X-RapidAPI-Key": f"{bot.URBAN}",
+            "X-RapidAPI-Host": "mashape-community-urban-dictionary.p.rapidapi.com"
+        }
+
+        page = requests.request("GET", url, headers=headers, params=querystring)
+        json_ = page.json()
+        json_ = sorted(
+            json_['list'],
+            key= lambda x:(x['thumbs_up']),
+            reverse=True
+        )
+        s = f"Results for: {args}\n\n"
+        for i in range(0, 5):
+            s += (
+                    (f"{i + 1}: ") + " ".join(json_[i]['definition'].splitlines()) + "\n"
+                    + "I.E: " + " ".join(json_[i]['example'].splitlines()) + "\n"
+                    + "Upvotes: " + str(json_[i]['thumbs_up']) + "\n\n"
+                )
+        await ctx.channel.send(">>> ```" + s + "```")
+
 def setup(client):
     client.add_cog(Extra(client))

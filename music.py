@@ -56,10 +56,16 @@ class MusicPlayer(commands.Cog):
     # Sends an embed button for search results found on youtube
     # * grabs the context message and turns it into a string, args grabs all words into one string instead of only first word
     @commands.command(aliases=['s'], description= "Searches for 5 videos relevent to search query")
-    async def search(self, ctx, *args):
+    async def search(self, ctx, *, args: str = ""):
         """Searches for 5 relevent videos | ?s"""
+        #handling ', " in string because it causes bot to break
+        args = args.replace("'", "").replace('"', "").replace("”", '"').replace("‟", '"').replace("’", "")
+        lst = list(args.split(" "))
+        args = [x for x in lst]
+        query = "+".join(args)
+        
         global searchList
-        query = ("+".join(args[:]))
+        print("query:" + query)
         # search = url + query 
         s = "https://www.youtube.com/results?search_query=" + query
         #request url on youtube using urllib.request
