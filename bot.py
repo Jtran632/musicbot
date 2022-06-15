@@ -33,6 +33,7 @@ import pytube
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
+URBAN = os.getenv('URBAN_DICT')
 intents = discord.Intents.default()
 
 #lets use a prefix to call functions instead of using the on_message function
